@@ -1,0 +1,15 @@
+{
+    "size": 10,
+    "amp_min": 0.1,
+    "amp_max": 40.0,
+    "amp_lerp_speed": 50.0,
+    "x_squish": 1,
+    "y_squish": 1,
+    "bezier_visibility": false,
+    "move_speed": 0,
+    "bezier_steps": 0,
+    "invert_color": false,
+    "constant_increase": false,
+    "is_drawing_instant": true,
+    "frequency": 0.2
+}
