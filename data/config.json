@@ -1,5 +1,5 @@
 {
-    "size": 10,
+    "size": 20,
     "amp_min": 0.1,
     "amp_max": 40.0,
     "amp_lerp_speed": 50.0,

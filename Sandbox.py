@@ -38,7 +38,6 @@ class CanvasDnD(tk.Frame):
         canvas.tag_bind("DnD", "<Leave>", self.leave)
 
     def down(self, event):
-        print
         "Click on %s" % event.widget.itemcget(tk.CURRENT, "text")
         self.loc = 1
         self.dragged = 0

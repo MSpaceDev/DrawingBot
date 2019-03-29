@@ -154,15 +154,6 @@ class CustomSlider:
         return self.scale.get()
 
 
-class BezierCheckbutton(CustomCheckbutton):
-    def __init__(self, x, y, text, function, is_checked, x_coord, y_coord, global_points):
-        self.xCoord = x_coord
-        self.yCoord = y_coord
-        self.globalPoints = global_points
-        CustomCheckbutton.__init__(self, x, y, text, function, is_checked)
-
-    def box_clicked(self):
-        self.globalPoints.append((self.xCoord, self.yCoord))
 
 
 # Holds all classes and widgets specifically created for the Block section of the generator
@@ -196,18 +187,6 @@ class Program:
         self.xSquish = CustomEntry(padX + 40, padY + 250, "X Eccentric", True, "1")
         self.ySquish = CustomEntry(padX + 40, padY + 285, "Y Eccentric", True, "1")
         self.graphSize = CustomEntry(padX + 40, padY + 320, "Graph Size", True, "10")
-
-        # Bezier checkbox grid #
-        self.cells = 20
-        self.bezierBoxes = [[] for i in range(self.cells)]
-        self.bezierPoints = []
-        initial_x, initial_y = padX + 300, padY + 30
-        spacing = 24
-        for i in range(self.cells):
-            for j in range(self.cells):
-                data_box = BezierCheckbutton(-100, 0, "", self.pass_func, False, j, self.cells - i - 1, self.bezierPoints)
-                box = BezierCheckbutton(initial_x + (j * spacing), initial_y + (i * spacing), "", data_box.box_clicked, False, 0, 0, self.bezierPoints)
-                self.bezierBoxes[i].append(box)
 
         # Checkboxes #
         self.bezierCurveVisibility = CustomCheckbutton(padX + 330, padY + 2, "Bezier Visibility", self.pass_func, True)
@@ -289,20 +268,17 @@ class Program:
         self.constant_increase_func()
 
     def start(self):
+        global points
+        global bezier_plot
+
         self.save()
         self.set_values()
 
-        checked_boxes = 0
-        for boxes in self.bezierBoxes:
-            for box in boxes:
-                if box.isChecked.get():
-                    checked_boxes += 1
-
-        if checked_boxes > 1:
-            points = self.scale()
-            with open("points.txt", "w+") as f:
+        if len(points) >= 2:
+            with open("data/points.txt", "w+") as f:
                 for point in points:
                     f.write(str(point[0]) + "," + str(point[1]) + "\n")
+        bezier_plot.reset_plot()
 
         self.drawing_plot = DrawingPlot.DrawingPlot(self.graphSizeInt,
                                                     self.amplitudeMinInt / 10,
@@ -316,22 +292,57 @@ class Program:
                                                     self.animateBool,
                                                     self.frequencyFloat
                                                     )
-        self.bezierPoints.clear()
-        for i in range(self.cells):
-            for j in range(self.cells):
-                self.bezierBoxes[i][j].uncheck()
 
         self.drawing_plot.main()
 
-    def scale(self):
-        scaled_points = []
-        for i in range(len(self.bezierPoints)):
-            point = list(self.bezierPoints[i])
-            point[0] = int(float((point[0]-10)/10) * float(self.graphSize.get_value()))
-            point[1] = int(float((point[1]-10)/10) * float(self.graphSize.get_value()))
-            scaled_points.append(point)
 
-        return scaled_points
+class BezierPlot:
+    def __init__(self):
+        self.point_number = 0
+
+        self.point_objects = []
+
+        background.create_rectangle(plot_pad_x, plot_pad_y, plot_pad_x + plot_width, plot_pad_y + plot_height, fill="#23272A", width=1, tags="bezierPlot")
+        background.tag_bind("bezierPlot", "<ButtonPress-1>", self.place_point)
+
+    def place_point(self, event):
+        global points
+
+        mouse_x = event.x
+        mouse_y = event.y
+
+        x, y = self.get_coord(mouse_x, mouse_y)
+        
+        marker = background.create_polygon([mouse_x + 5, mouse_y, mouse_x, mouse_y + 5, mouse_x - 5, mouse_y, mouse_x, mouse_y - 5], fill="cyan")
+        number = background.create_text(mouse_x, mouse_y - 15, text=str(self.point_number), fill="white")
+        coord = background.create_text(mouse_x, mouse_y + 15, text="({0},{1})".format(x, y), fill="white")
+
+        self.point_objects.extend([marker, number, coord])
+        self.point_number += 1
+
+        points.append([x, y])
+
+    def get_coord(self, x, y):
+        # Clamp between 0 and 21
+        ratio = 21 / plot_width
+        x = (x - plot_pad_x - 1) * ratio
+        y = (y - plot_pad_y - 1) * ratio
+
+        # Make 0;0 center instead of top left corner
+        x = int(float((x - 10) / 10) * 20)
+        y = -int(float((y - 10) / 10) * 20)
+
+        return x, y
+
+    def reset_plot(self):
+        global points
+
+        self.point_number = 0
+        points.clear()
+
+        for obj in self.point_objects:
+            background.delete(obj)
+        self.point_objects.clear()
 
 
 # Main Program
@@ -353,6 +364,12 @@ mainWidth = root.winfo_width()
 mainHeight = root.winfo_height()
 length = mainWidth - padX*2
 
+# Bezier Plot
+plot_width = 450
+plot_height = 450
+plot_pad_y = padY + 50
+plot_pad_x = padX + 300
+
 # Create background
 background = Canvas(root, width=mainWidth, height=mainHeight, highlightthickness=0, bg="#2f3136")
 background.pack()
@@ -362,7 +379,11 @@ background.create_text(mainWidth / 2, padY / 2, text="THE DRAWING BOT", font="Ne
 errorBG = background.create_rectangle(0, mainHeight - 1, mainWidth - 1, mainHeight + padY / 2, fill="#9d1c1c")
 errorText = background.create_text(mainWidth / 2, mainHeight + padY / 4 - 1, text="Invalid directory selected!", fill="white", font="Neoteric 11 bold")
 
+# Global vars
+points = []
+
 # Load Separate GUIs
 Program()
+bezier_plot = BezierPlot()
 
 root.mainloop()
