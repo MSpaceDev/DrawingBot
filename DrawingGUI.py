@@ -190,12 +190,18 @@ class Program:
         self.bezierCurveVisibility = CustomCheckbutton(padX + 330, padY + 2, "Bezier Visibility", self.pass_func, True)
         self.invertColor = CustomCheckbutton(padX + 600, padY + 2, "Invert Color", self.pass_func, True)
         self.constantIncrease = CustomCheckbutton(padX + 40, padY + 170, "Increase Constantly?", self.constant_increase_func, False)
-        self.is_drawing_instant = CustomCheckbutton(padX + 40, padY + 200, "Draw Instant?", self.pass_func, False)
+        self.isDrawingInstant = CustomCheckbutton(padX + 40, padY + 200, "Draw Instant?", self.pass_func, False)
 
         # Buttons #
-        self.start = CustomButton(padX + 50, padY + 435, 200, 75, "START", "#50c878", "#ffffff", "Neoteric 30", self.start)
+        self.clearPoints = CustomButton(padX + 50, padY + 365, 200, 75, "CLEAR", "#9d1c1c", "#ffffff", "Neoteric 30", self.reset_points)
+        self.start = CustomButton(padX + 50, padY + 445, 200, 75, "START", "#50c878", "#ffffff", "Neoteric 30", self.start)
 
         self.load()
+
+    @staticmethod
+    def reset_points():
+        global bezier_plot
+        bezier_plot.reset_plot()
 
     def pass_func(self):
         pass
@@ -216,7 +222,7 @@ class Program:
         self.bezierCurveVisibilityBool = bool(self.bezierCurveVisibility.isChecked.get())
         self.invertColorBool = bool(self.invertColor.isChecked.get())
         self.constantIncreaseBool = bool(self.constantIncrease.isChecked.get())
-        self.animateBool = bool(self.is_drawing_instant.isChecked.get())
+        self.animateBool = bool(self.isDrawingInstant.isChecked.get())
         self.frequencyFloat = float(self.frequency.get_value())
 
     def save(self):
@@ -258,7 +264,7 @@ class Program:
                 self.bezierCurveVisibility.set_value(config["bezier_visibility"])
                 self.invertColor.set_value(config["invert_color"])
                 self.constantIncrease.set_value(config["constant_increase"])
-                self.is_drawing_instant.set_value(config["is_drawing_instant"])
+                self.isDrawingInstant.set_value(config["is_drawing_instant"])
                 self.frequency.set_value(config["frequency"])
         except FileNotFoundError:
             pass
@@ -266,17 +272,15 @@ class Program:
         self.constant_increase_func()
 
     def start(self):
-        global points
-        global bezier_plot
-
         self.save()
         self.set_values()
 
-        if len(points) >= 2:
+        if len(bezier_points) >= 2:
             with open("data/points.txt", "w+") as f:
-                for point in points:
-                    f.write(str(point[0]) + "," + str(point[1]) + "\n")
-        bezier_plot.reset_plot()
+                for point in bezier_points:
+                    pos_x, pos_y = point.get_position()
+                    coord = BezierPlot.get_coord(pos_x, pos_y)
+                    f.write("{0},{1}\n".format(coord[0], coord[1]))
 
         self.drawing_plot = DrawingPlot.DrawingPlot(self.graphSizeInt,
                                                     self.amplitudeMinInt / 10,
@@ -297,31 +301,41 @@ class Program:
 class BezierPoint:
     def __init__(self, master, mouse_x, mouse_y, point_number):
         self.master = master
-        self.mouse_x = mouse_x
-        self.mouse_y = mouse_y
+        self.x_pos = mouse_x
+        self.y_pos = mouse_y
+        self.point_number = point_number
 
-        self.marker = background.create_polygon(self.get_marker_coords(self.mouse_x, self.mouse_y), fill="cyan", tag="DnD")
-        self.number = background.create_text(mouse_x, mouse_y - 15, text=point_number, fill="white")
+        self.tag = "bezier_point_" + str(self.point_number)
 
-        background.tag_bind("DnD", "<ButtonPress-1>", self.down)
-        background.tag_bind("DnD", "<ButtonRelease-1>", self.up)
+        self.number = background.create_text(mouse_x, mouse_y - 15, text=self.point_number, fill="white")
+        self.marker = background.create_polygon(self.get_marker_coords(self.x_pos, self.y_pos), fill="cyan", tag=self.tag)
 
-    def get_marker_coords(self, x, y):
+        background.tag_bind(self.tag, "<ButtonPress-1>", self.down)
+        background.tag_bind(self.tag, "<ButtonRelease-1>", self.up)
+
+    @staticmethod
+    def get_marker_coords(x, y):
         return [x + 5, y, x, y + 5, x - 5, y, x, y - 5]
 
     def update_point(self, x, y):
-        self.number = background.create_text(x, y - 15, text="0", fill="white")
+        self.x_pos = x
+        self.y_pos = y
 
     def down(self, event):
-        background.delete(self.number)
         event.widget.bind("<Motion>", self.motion)
 
     def motion(self, event):
-        background.coords(self.marker, self.get_marker_coords(event.x, event.y))
+        # Constrain marker to stay inside bezier plot
+        if plot_pad_x < event.x < plot_pad_x + plot_width and plot_pad_y < event.y < plot_pad_y + plot_height:
+            background.coords(self.marker, self.get_marker_coords(event.x, event.y))
+            background.coords(self.number, [event.x, event.y - 15])
 
     def up(self, event):
         event.widget.unbind("<Motion>")
         self.update_point(event.x, event.y)
+
+    def get_position(self):
+        return self.x_pos, self.y_pos
 
 
 class BezierPlot:
@@ -339,9 +353,9 @@ class BezierPlot:
 
         mouse_x = event.x
         mouse_y = event.y
-        x, y = self.get_coord(mouse_x, mouse_y)
 
         bezier_points.append(BezierPoint(self.master, mouse_x, mouse_y, self.point_number))
+        self.point_number += 1
 
     @staticmethod
     def get_coord(x, y):
@@ -357,14 +371,15 @@ class BezierPlot:
         return x, y
 
     def reset_plot(self):
-        global points
+        global bezier_points
 
         self.point_number = 0
-        points.clear()
 
-        for obj in self.point_objects:
-            background.delete(obj)
-        self.point_objects.clear()
+        for obj in bezier_points:
+            background.delete(obj.marker)
+            background.delete(obj.number)
+
+        bezier_points.clear()
 
 
 # Main Program
@@ -406,6 +421,6 @@ bezier_points = []
 
 # Load Separate GUIs
 Program()
-BezierPlot(root)
+bezier_plot = BezierPlot(root)
 
 root.mainloop()
