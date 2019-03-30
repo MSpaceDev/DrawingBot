@@ -1,0 +1,2 @@
+dynamic updates from config
+delete and append bezier points
