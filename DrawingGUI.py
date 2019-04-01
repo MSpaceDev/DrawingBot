@@ -2,7 +2,9 @@ from tkinter import *
 import threading
 import time
 import DrawingPlot
-from json import dumps, load
+import Updater
+from GUIParameters import GUIParameters
+from json import load
 
 
 class Alert:
@@ -155,23 +157,9 @@ class CustomSlider:
 
 
 # Holds all classes and widgets specifically created for the Block section of the generator
-class Program:
+class DrawingGUI:
     def __init__(self):
         # Properties #
-        self.graphSizeInt = 0
-        self.amplitudeMinInt = 0
-        self.amplitudeMaxInt = 0
-        self.amplitudeLerpSpeedInt = 0
-        self.xSquishInt = 0
-        self.ySquishInt = 0
-        self.bezierCurveVisibilityBool = False
-        self.moveSpeedInt = 0
-        self.bezierStepsFloat = 0
-        self.invertColorBool = False
-        self.constantIncreaseBool = False
-        self.animateBool = False
-        self.frequencyFloat = 0
-
         self.drawing_plot = None
 
         # Seperators and borders #
@@ -197,6 +185,10 @@ class Program:
         self.start = CustomButton(padX + 50, padY + 445, 200, 75, "START", "#50c878", "#ffffff", "Neoteric 30", self.start)
 
         self.load()
+        self.gui_parameters = GUIParameters()
+        self.gui_parameter_updater = Updater.GUIParameterUpdater(self)
+        self.gui_parameter_updater.start()
+
 
     @staticmethod
     def reset_points():
@@ -211,44 +203,6 @@ class Program:
             self.amplitudeMaxText.set_state("disabled")
         else:
             self.amplitudeMaxText.set_state("normal")
-
-    def set_values(self):
-        self.graphSizeInt = int(self.graphSize.get_value())
-        self.amplitudeMinInt = float(self.amplitudeMinText.get_value())
-        self.amplitudeMaxInt = float(self.amplitudeMaxText.get_value())
-        self.amplitudeLerpSpeedInt = float(self.amplitudeLerpSpeed.get_value())
-        self.xSquishInt = int(self.xSquish.get_value())
-        self.ySquishInt = int(self.ySquish.get_value())
-        self.bezierCurveVisibilityBool = bool(self.bezierCurveVisibility.isChecked.get())
-        self.invertColorBool = bool(self.invertColor.isChecked.get())
-        self.constantIncreaseBool = bool(self.constantIncrease.isChecked.get())
-        self.animateBool = bool(self.isDrawingInstant.isChecked.get())
-        self.frequencyFloat = float(self.frequency.get_value())
-
-    def save(self):
-        self.set_values()
-
-        config = \
-            {
-                "size": self.graphSizeInt,
-                "amp_min": self.amplitudeMinInt,
-                "amp_max": self.amplitudeMaxInt,
-                "amp_lerp_speed": self.amplitudeLerpSpeedInt,
-                "x_squish": self.xSquishInt,
-                "y_squish": self.ySquishInt,
-                "bezier_visibility": self.bezierCurveVisibilityBool,
-                "move_speed": self.moveSpeedInt,
-                "bezier_steps": self.bezierStepsFloat,
-                "invert_color": self.invertColorBool,
-                "constant_increase": self.constantIncreaseBool,
-                "is_drawing_instant": self.animateBool,
-                "frequency": self.frequencyFloat
-            }
-
-        with open("data/config.json", "w+") as f:
-            f.write(dumps(config, indent=4))
-
-        Alert("Saved successfully!", 5, "#50c878")
 
     def load(self):
         try:
@@ -272,8 +226,12 @@ class Program:
         self.constant_increase_func()
 
     def start(self):
-        self.save()
-        self.set_values()
+        u = Updater.Updater(self)
+        u.start()
+
+    def update(self):
+        self.gui_parameters.save(self)
+        self.gui_parameters.set_values(self)
 
         if len(bezier_points) >= 2:
             with open("data/points.txt", "w+") as f:
@@ -282,18 +240,7 @@ class Program:
                     coord = BezierPlot.get_coord(pos_x, pos_y)
                     f.write("{0},{1}\n".format(coord[0], coord[1]))
 
-        self.drawing_plot = DrawingPlot.DrawingPlot(self.graphSizeInt,
-                                                    self.amplitudeMinInt / 10,
-                                                    self.amplitudeMaxInt / 10,
-                                                    self.amplitudeLerpSpeedInt / 100,
-                                                    self.xSquishInt,
-                                                    self.ySquishInt,
-                                                    self.bezierCurveVisibilityBool,
-                                                    self.invertColorBool,
-                                                    self.constantIncreaseBool,
-                                                    self.animateBool,
-                                                    self.frequencyFloat
-                                                    )
+        self.drawing_plot = DrawingPlot.DrawingPlot(self.gui_parameters)
 
         self.drawing_plot.main()
 
@@ -381,7 +328,6 @@ class BezierPlot:
 
         bezier_points.clear()
 
-
 # Main Program
 root = Tk()
 
@@ -420,7 +366,7 @@ errorText = background.create_text(mainWidth / 2, mainHeight + padY / 4 - 1, tex
 bezier_points = []
 
 # Load Separate GUIs
-Program()
+DrawingGUI()
 bezier_plot = BezierPlot(root)
 
 root.mainloop()

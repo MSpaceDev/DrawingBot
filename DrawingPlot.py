@@ -5,32 +5,19 @@ import BezierCurve
 
 
 class DrawingPlot:
-    def __init__(self,
-                 size,
-                 amplitude_min,
-                 amplitude_max,
-                 amplitude_lerp_speed,
-                 x_squish,
-                 y_squish,
-                 bezier_visibility,
-                 invert_color,
-                 constant_increase,
-                 is_drawing_instant,
-                 frequency
-                 ):
-
-        self.size = size
-        self.amplitude_min = amplitude_min
-        self.amplitude_max = amplitude_max
-        self.amplitude_lerp_speed = amplitude_lerp_speed
-        self.x_squish = x_squish
-        self.y_squish = y_squish
-        self.bezier_visibility = bezier_visibility
-        self.constant_increase = constant_increase
-        self.is_drawing_instant = is_drawing_instant
+    def __init__(self, gui_parameters):
+        self.size = gui_parameters.graphSizeInt
+        self.amplitude_min = gui_parameters.amplitudeMinInt/10
+        self.amplitude_max = gui_parameters.amplitudeMaxInt/10
+        self.amplitude_lerp_speed = gui_parameters.amplitudeLerpSpeedInt/100
+        self.x_squish = gui_parameters.xSquishInt
+        self.y_squish = gui_parameters.ySquishInt
+        self.bezier_visibility = gui_parameters.bezierCurveVisibilityBool
+        self.constant_increase = gui_parameters.constantIncreaseBool
+        self.is_drawing_instant = gui_parameters.animateBool
 
         self.amplitude = self.amplitude_min
-        self.frequency = frequency
+        self.frequency = gui_parameters.frequencyFloat
 
         self.is_first_cycle = True
         self.points_exist = True
@@ -46,7 +33,9 @@ class DrawingPlot:
         self.ani = None
         self.is_increasing = False
 
-        if invert_color:
+        self.invertColor = gui_parameters.invertColorBool
+
+        if self.invertColor:
             self.line_color = 'white'
             self.bg_color = '#2f3136'
         else:
@@ -178,4 +167,7 @@ class DrawingPlot:
         else:
             self.ani = animation.FuncAnimation(fig, self.animate, interval=1)
 
-        plt.show()
+        try:
+            plt.show()
+        except:
+            pass
