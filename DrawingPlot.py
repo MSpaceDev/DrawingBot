@@ -2,10 +2,9 @@ import matplotlib.pyplot as plt
 from matplotlib.text import *
 import matplotlib.animation as animation
 import BezierCurve
-import threading
 
 
-class DrawingPlot(threading.Thread):
+class DrawingPlot:
     def __init__(self,
                  size,
                  amplitude_min,
@@ -19,7 +18,7 @@ class DrawingPlot(threading.Thread):
                  is_drawing_instant,
                  frequency
                  ):
-        threading.Thread.__init__(self, name = "Drawing Plot Tread")
+
         self.size = size
         self.amplitude_min = amplitude_min
         self.amplitude_max = amplitude_max
@@ -70,27 +69,6 @@ class DrawingPlot(threading.Thread):
         for points in self.bezier_points:
             self.bezier_x.append(points[0])
             self.bezier_y.append(points[1])
-
-    def run(self):
-        fig = plt.figure(1, facecolor=self.bg_color, figsize=(2, 2), dpi=400)
-        self.ax = fig.add_subplot(111)
-
-        self.ax.set_frame_on(False)
-        self.ax.axes.get_yaxis().set_visible(False)
-        self.ax.axes.get_xaxis().set_visible(False)
-
-        if self.is_drawing_instant:
-            i = 0
-            self.animate(i)
-            while self.points_exist:
-                self.animate(i)
-                i += 1
-
-            self.render_points()
-        else:
-            self.ani = animation.FuncAnimation(fig, self.animate, interval=1)
-
-        plt.show()
 
     def animate(self, i):
         if self.is_first_cycle:
@@ -180,3 +158,24 @@ class DrawingPlot(threading.Thread):
             pos = 1 - pos
 
         return (pos * b) + ((1 - pos) * a)
+
+    def main(self):
+        fig = plt.figure(1, facecolor=self.bg_color, figsize=(2, 2), dpi=400)
+        self.ax = fig.add_subplot(111)
+
+        self.ax.set_frame_on(False)
+        self.ax.axes.get_yaxis().set_visible(False)
+        self.ax.axes.get_xaxis().set_visible(False)
+
+        if self.is_drawing_instant:
+            i = 0
+            self.animate(i)
+            while self.points_exist:
+                self.animate(i)
+                i += 1
+
+            self.render_points()
+        else:
+            self.ani = animation.FuncAnimation(fig, self.animate, interval=1)
+
+        plt.show()

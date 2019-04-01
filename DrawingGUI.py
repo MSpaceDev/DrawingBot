@@ -2,7 +2,6 @@ from tkinter import *
 import threading
 import time
 import DrawingPlot
-import Updater
 from json import dumps, load
 
 
@@ -227,6 +226,8 @@ class Program:
         self.frequencyFloat = float(self.frequency.get_value())
 
     def save(self):
+        self.set_values()
+
         config = \
             {
                 "size": self.graphSizeInt,
@@ -270,13 +271,10 @@ class Program:
 
         self.constant_increase_func()
 
-
-    def update_values(self):
-        self.set_values()
+    def start(self):
         self.save()
+        self.set_values()
 
-    def display_curve(self):
-        print("Displaying")
         if len(bezier_points) >= 2:
             with open("data/points.txt", "w+") as f:
                 for point in bezier_points:
@@ -297,14 +295,7 @@ class Program:
                                                     self.frequencyFloat
                                                     )
 
-        self.drawing_plot.start()
-
-    def start(self):
-        if not Updater.Updater.is_active:
-            updater = Updater.Updater("Updater")
-            updater.set_drawing_GUI(self)
-            # updater.start()
-        self.display_curve()
+        self.drawing_plot.main()
 
 
 class BezierPoint:
