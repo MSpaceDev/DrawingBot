@@ -15,6 +15,7 @@ class GUIParameters():
         self.constantIncreaseBool = False
         self.animateBool = False
         self.frequencyFloat = 0
+        self.point_objects = None
 
     def set_values(self, drawing_gui):
         self.graphSizeInt = int(drawing_gui.graphSize.get_value())
@@ -61,7 +62,26 @@ class GUIParameters():
             self.invertColorBool == other.invertColorBool and \
             self.constantIncreaseBool == other.constantIncreaseBool and \
             self.animateBool == other.animateBool and \
-            self.frequencyFloat == other.frequencyFloat
+            self.frequencyFloat == other.frequencyFloat and \
+            self.is_equal_point_objects(other.point_objects)
+
+    def is_equal_point_objects(self, other):
+        print (self.point_objects)
+        return True
+        # if other is None:
+        #     other = deepcopy(self.point_objects)
+        #     return False
+        #
+        # if len(other) != len(self.point_objects):
+        #     return False
+        #
+        # for point in self.point_objects:
+        #     for _point in other:
+        #         if not (point[0] == _point[0] and point[1] == _point[1]):
+        #             return False
+        #
+        # return True
+
 
     def clone(self):
         return deepcopy(self)

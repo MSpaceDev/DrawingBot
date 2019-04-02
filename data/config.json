@@ -6,8 +6,6 @@
     "x_squish": 1,
     "y_squish": 3,
     "bezier_visibility": false,
-    "move_speed": 0,
-    "bezier_steps": 0,
     "invert_color": false,
     "constant_increase": false,
     "is_drawing_instant": true,

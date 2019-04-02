@@ -276,21 +276,22 @@ class BezierPoint:
         if plot_pad_x < event.x < plot_pad_x + plot_width and plot_pad_y < event.y < plot_pad_y + plot_height:
             background.coords(self.marker, self.get_marker_coords(event.x, event.y))
             background.coords(self.number, [event.x, event.y - 15])
+            self.update_point(event.x, event.y)
 
     def up(self, event):
         event.widget.unbind("<Motion>")
-        self.update_point(event.x, event.y)
 
     def get_position(self):
         return self.x_pos, self.y_pos
 
 
 class BezierPlot:
-    def __init__(self, master):
+    def __init__(self, master, gui_parameters):
         self.master = master
         self.point_number = 0
-
-        self.point_objects = []
+        self.gui_parameters = gui_parameters
+        global bezier_points
+        gui_parameters.point_objects = bezier_points
 
         background.create_rectangle(plot_pad_x, plot_pad_y, plot_pad_x + plot_width, plot_pad_y + plot_height, fill="#23272A", width=1, tags="bezierPlot")
         background.tag_bind("bezierPlot", "<ButtonPress-1>", self.place_point)
@@ -366,7 +367,7 @@ errorText = background.create_text(mainWidth / 2, mainHeight + padY / 4 - 1, tex
 bezier_points = []
 
 # Load Separate GUIs
-DrawingGUI()
-bezier_plot = BezierPlot(root)
+drawing_gui = DrawingGUI()
+bezier_plot = BezierPlot(root, drawing_gui)
 
 root.mainloop()
