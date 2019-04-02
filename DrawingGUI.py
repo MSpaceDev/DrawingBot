@@ -6,39 +6,46 @@ from json import dumps, load
 
 
 class Alert:
-    def __init__(self, text, stay_time=5, color="#9d1c1c"):
-        self.move = 0
-        self.move_amount = padY / 2 + 1
-        self.stay_time = stay_time
+	def __init__(self, text, is_error, stay_time=5):
+		self.move = 0
+		self.moveAmount = padY / 2 + 1
+		self.stayTime = stay_time
 
-        background.itemconfig(errorText, text=text, font="Neoteric 11 bold")
-        background.itemconfig(errorBG, fill=color)
-        self.error_in()
+		if is_error:
+			color = "#9d1c1c"
+		else:
+			color = "#43b581"
 
-    def error_in(self):
-        if self.move < self.move_amount:
-            background.after(4, self.error_in)
-            background.move(errorBG, 0, -1)
-            background.move(errorText, 0, -1)
-        else:
-            self.move = 0
-            threading._start_new_thread(self.timer, ())
-            return
-        self.move += 1
+		self.errorBG = background.create_rectangle(0, mainHeight - 1, mainWidth - 1, mainHeight + padY / 2, fill=color)
+		self.errorText = background.create_text(mainWidth / 2, mainHeight + padY / 4 - 1, text=text, fill="white", font="SegoeUILight 11 bold")
+		self.error_in()
 
-    def timer(self):
-        time.sleep(self.stay_time)
-        self.error_out()
+	def error_in(self):
+		if self.move < self.moveAmount:
+			background.after(4, self.error_in)
+			background.move(self.errorBG, 0, -1)
+			background.move(self.errorText, 0, -1)
+		else:
+			self.move = 0
+			threading._start_new_thread(self.timer, ())
+			return
+		self.move += 1
 
-    def error_out(self):
-        if self.move < self.move_amount:
-            background.after(4, self.error_out)
-            background.move(errorBG, 0, 1)
-            background.move(errorText, 0, 1)
-        else:
-            self.move = 0
-            return
-        self.move += 1
+	def timer(self):
+		time.sleep(self.stayTime)
+		self.error_out()
+		return
+
+	def error_out(self):
+		if self.move < self.moveAmount:
+			background.after(4, self.error_out)
+			background.move(self.errorBG, 0, 1)
+			background.move(self.errorText, 0, 1)
+		else:
+			background.delete(self.errorBG)
+			background.delete(self.errorText)
+			return
+		self.move += 1
 
 
 # Useful classes to easily create Tkinter widgets on a canvas
@@ -248,7 +255,7 @@ class Program:
         with open("data/config.json", "w+") as f:
             f.write(dumps(config, indent=4))
 
-        Alert("Saved successfully!", 5, "#50c878")
+        Alert("Saved successfully!", False, 1)
 
     def load(self):
         try:
@@ -310,8 +317,7 @@ class BezierPoint:
         self.number = background.create_text(mouse_x, mouse_y - 15, text=self.point_number, fill="white")
         self.marker = background.create_polygon(self.get_marker_coords(self.x_pos, self.y_pos), fill="cyan", tag=self.tag)
 
-        background.tag_bind(self.tag, "<ButtonPress-1>", self.down)
-        background.tag_bind(self.tag, "<ButtonRelease-1>", self.up)
+        self.bind_input()
 
     @staticmethod
     def get_marker_coords(x, y):
@@ -320,6 +326,43 @@ class BezierPoint:
     def update_point(self, x, y):
         self.x_pos = x
         self.y_pos = y
+
+    def delete_point(self, event):
+        global bezier_points
+        global bezier_plot
+
+        background.delete(self.marker)
+        background.delete(self.number)
+        bezier_points.pop(self.point_number)
+        bezier_plot.set_point_number(bezier_plot.get_point_number() - 1)
+
+        for i in range(self.point_number, len(bezier_points)):
+            bezier_points[i].unbind_input()
+            bezier_points[i].set_point_number(bezier_points[i].get_point_number() - 1)
+            bezier_points[i].bind_input()
+
+    def bind_input(self):
+        self.tag = "bezier_point_" + str(self.point_number)
+        background.itemconfig(self.marker, tag=self.tag)
+
+        background.tag_bind(self.tag, "<ButtonPress-1>", self.down)
+        background.tag_bind(self.tag, "<ButtonRelease-1>", self.up)
+        background.tag_bind(self.tag, "<ButtonPress-3>", self.delete_point)
+
+    def unbind_input(self):
+        self.tag = "bezier_point_" + str(self.point_number)
+        background.itemconfig(self.marker, tag=self.tag)
+
+        background.tag_unbind(self.tag, "<ButtonPress-1>")
+        background.tag_unbind(self.tag, "<ButtonRelease-1>")
+        background.tag_unbind(self.tag, "<ButtonPress-3>")
+
+    def set_point_number(self, point_number):
+        background.itemconfig(self.number, text=point_number)
+        self.point_number = point_number
+
+    def get_point_number(self):
+        return self.point_number
 
     def down(self, event):
         event.widget.bind("<Motion>", self.motion)
@@ -357,6 +400,12 @@ class BezierPlot:
         bezier_points.append(BezierPoint(self.master, mouse_x, mouse_y, self.point_number))
         self.point_number += 1
 
+    def set_point_number(self, point_number):
+        self.point_number = point_number
+
+    def get_point_number(self):
+        return self.point_number
+
     @staticmethod
     def get_coord(x, y):
         # Clamp between 0 and 21
@@ -376,8 +425,7 @@ class BezierPlot:
         self.point_number = 0
 
         for obj in bezier_points:
-            background.delete(obj.marker)
-            background.delete(obj.number)
+            obj.remove_point()
 
         bezier_points.clear()
 

@@ -5,7 +5,7 @@
     "amp_lerp_speed": 50.0,
     "x_squish": 1,
     "y_squish": 3,
-    "bezier_visibility": false,
+    "bezier_visibility": true,
     "move_speed": 0,
     "bezier_steps": 0,
     "invert_color": false,
