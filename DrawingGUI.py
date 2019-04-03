@@ -159,6 +159,7 @@ class CustomSlider:
 # Holds all classes and widgets specifically created for the Block section of the generator
 class DrawingGUI:
     def __init__(self):
+        self.bezier_points = []
         # Properties #
         self.drawing_plot = None
 
@@ -181,14 +182,13 @@ class DrawingGUI:
         self.isDrawingInstant = CustomCheckbutton(padX + 40, padY + 200, "Draw Instant?", self.pass_func, False)
 
         # Buttons #
-        self.clearPoints = CustomButton(padX + 50, padY + 365, 200, 75, "CLEAR", "#9d1c1c", "#ffffff", "Neoteric 30", self.reset_points)
-        self.start = CustomButton(padX + 50, padY + 445, 200, 75, "START", "#50c878", "#ffffff", "Neoteric 30", self.start)
+        self.clearPoints = CustomButton(padX + 50, padY + 365, 200, 75, "CLEAR", "#9d1c1c",
+                                        "#ffffff", "Neoteric 30", self.reset_points)
+        self.start = CustomButton(padX + 50, padY + 445, 200, 75, "START", "#50c878",
+                                  "#ffffff", "Neoteric 30", self.start)
 
         self.load()
         self.gui_parameters = GUIParameters()
-        self.gui_parameter_updater = Updater.GUIParameterUpdater(self)
-        self.gui_parameter_updater.start()
-
 
     @staticmethod
     def reset_points():
@@ -233,9 +233,9 @@ class DrawingGUI:
         self.gui_parameters.save(self)
         self.gui_parameters.set_values(self)
 
-        if len(bezier_points) >= 2:
+        if len(self.bezier_points) >= 2:
             with open("data/points.txt", "w+") as f:
-                for point in bezier_points:
+                for point in self.bezier_points:
                     pos_x, pos_y = point.get_position()
                     coord = BezierPlot.get_coord(pos_x, pos_y)
                     f.write("{0},{1}\n".format(coord[0], coord[1]))
@@ -246,8 +246,7 @@ class DrawingGUI:
 
 
 class BezierPoint:
-    def __init__(self, master, mouse_x, mouse_y, point_number):
-        self.master = master
+    def __init__(self, mouse_x, mouse_y, point_number):
         self.x_pos = mouse_x
         self.y_pos = mouse_y
         self.point_number = point_number
@@ -255,7 +254,8 @@ class BezierPoint:
         self.tag = "bezier_point_" + str(self.point_number)
 
         self.number = background.create_text(mouse_x, mouse_y - 15, text=self.point_number, fill="white")
-        self.marker = background.create_polygon(self.get_marker_coords(self.x_pos, self.y_pos), fill="cyan", tag=self.tag)
+        self.marker = background.\
+            create_polygon(self.get_marker_coords(self.x_pos, self.y_pos), fill="cyan", tag=self.tag)
 
         background.tag_bind(self.tag, "<ButtonPress-1>", self.down)
         background.tag_bind(self.tag, "<ButtonRelease-1>", self.up)
@@ -286,23 +286,18 @@ class BezierPoint:
 
 
 class BezierPlot:
-    def __init__(self, master, gui_parameters):
-        self.master = master
+    def __init__(self, bezier_points):
+        self.bezier_points = bezier_points
         self.point_number = 0
-        self.gui_parameters = gui_parameters
-        global bezier_points
-        gui_parameters.point_objects = bezier_points
 
         background.create_rectangle(plot_pad_x, plot_pad_y, plot_pad_x + plot_width, plot_pad_y + plot_height, fill="#23272A", width=1, tags="bezierPlot")
         background.tag_bind("bezierPlot", "<ButtonPress-1>", self.place_point)
 
     def place_point(self, event):
-        global bezier_points
-
         mouse_x = event.x
         mouse_y = event.y
 
-        bezier_points.append(BezierPoint(self.master, mouse_x, mouse_y, self.point_number))
+        self.bezier_points.append(BezierPoint(mouse_x, mouse_y, self.point_number))
         self.point_number += 1
 
     @staticmethod
@@ -319,15 +314,14 @@ class BezierPlot:
         return x, y
 
     def reset_plot(self):
-        global bezier_points
-
         self.point_number = 0
 
-        for obj in bezier_points:
+        for obj in self.bezier_points:
             background.delete(obj.marker)
             background.delete(obj.number)
 
-        bezier_points.clear()
+        self.bezier_points.clear()
+
 
 # Main Program
 root = Tk()
@@ -357,17 +351,16 @@ plot_pad_x = padX + 300
 # Create background
 background = Canvas(root, width=mainWidth, height=mainHeight, highlightthickness=0, bg="#2f3136")
 background.pack()
-background.create_text(mainWidth / 2, padY / 2, text="THE DRAWING BOT", font="Neoteric 30", fill="#00ffff", anchor=CENTER)
+background.create_text(mainWidth / 2, padY / 2, text="THE DRAWING BOT",
+                       font="Neoteric 30", fill="#00ffff", anchor=CENTER)
 
 # Create error bar
 errorBG = background.create_rectangle(0, mainHeight - 1, mainWidth - 1, mainHeight + padY / 2, fill="#9d1c1c")
-errorText = background.create_text(mainWidth / 2, mainHeight + padY / 4 - 1, text="Invalid directory selected!", fill="white", font="Neoteric 11 bold")
-
-# Global vars
-bezier_points = []
+errorText = background.create_text(mainWidth / 2, mainHeight + padY / 4 - 1, text="Invalid directory selected!",
+                                   fill="white", font="Neoteric 11 bold")
 
 # Load Separate GUIs
 drawing_gui = DrawingGUI()
-bezier_plot = BezierPlot(root, drawing_gui)
+bezier_plot = BezierPlot(drawing_gui.bezier_points)
 
 root.mainloop()

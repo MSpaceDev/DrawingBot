@@ -80,7 +80,8 @@ class DrawingPlot:
             return
 
         x = self.x_squish * self.amplitude * math.sin(t * self._frequency + self.phase) + transform_point[0]
-        y = self.y_squish * self.amplitude * math.cos(t * self._frequency + self.phase) - self.amplitude + transform_point[1]
+        y = self.y_squish * self.amplitude * math.cos(t * self._frequency + self.phase) - self.amplitude + \
+            transform_point[1]
 
         self.xar.append(x)
         self.yar.append(y)
@@ -150,7 +151,7 @@ class DrawingPlot:
 
     def main(self):
         fig = plt.figure(1, facecolor=self.bg_color, figsize=(2, 2), dpi=400)
-        self.ax = fig.add_subplot(111)
+        self.ax = plt.gca()
 
         self.ax.set_frame_on(False)
         self.ax.axes.get_yaxis().set_visible(False)
@@ -169,5 +170,5 @@ class DrawingPlot:
 
         try:
             plt.show()
-        except:
+        except RuntimeError:
             pass
